@@ -367,7 +367,7 @@ class LabelPredictionLearningObjective(LearningObjective):
         """
         Initialization
         """
-        self._criterion = torch.nn.BCELoss()
+        self._criterion = torch.nn.BCEWithLogitsLoss()
         self._performance = BinaryPredictionPerformance()
 
     def process_row(self,
@@ -387,7 +387,7 @@ class LabelPredictionLearningObjective(LearningObjective):
 
         loss = self._criterion(torch.squeeze(label_predictions), labels.float().squeeze())
         self._performance.add(loss=loss.float().mean().item(),
-                              prediction=label_predictions.detach().cpu().tolist(),
+                              prediction=torch.sigmoid(label_predictions.detach().cpu()).tolist(),
                               label=labels.detach().cpu().tolist())
         return loss
 

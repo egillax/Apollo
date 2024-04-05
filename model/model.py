@@ -178,7 +178,7 @@ class TransformerModel(nn.Module):
             # No softmax here, as it's included in CrossEntropyLoss:
             predictions[ModelOutputNames.NEXT_VISIT_TOKENS_PREDICTION] = self.next_visit_tokens_decoder(encoded[:, 0, :])
         if self.learning_objective_settings.label_prediction:
-            predictions[ModelOutputNames.LABEL_PREDICTIONS] = torch.sigmoid(self.label_decoder(encoded[:, 0, :]))
+            predictions[ModelOutputNames.LABEL_PREDICTIONS] = self.label_decoder(encoded[:, 0, :])
         if self.learning_objective_settings.lstm_label_prediction:
             predictions[ModelOutputNames.LABEL_PREDICTIONS] = self._lstm_label_prediction(encoded, inputs)
         return predictions
@@ -214,4 +214,3 @@ class TransformerModel(nn.Module):
         if self.src_mask is not None:
             self.src_mask = self.src_mask.to(device)
         return self
-
