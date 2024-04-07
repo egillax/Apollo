@@ -116,14 +116,17 @@ class CdmDataProcessor(AbstractCdmDataProcessor):
               "  CAST('0' AS VARCHAR) AS visit_concept_ids, " \
               "  -2 AS sort_order, " \
               "  observation_period_id, " \
-              "  person_id " \
+              "  person_id, "\
+              "  gender_concept_id," \
               "FROM (" \
               "  SELECT visits.visit_start_date - previous_visit.visit_end_date AS days," \
-              "    visits.* " \
+              "    visits.*," \
+              "    person.gender_concept_id" \
               "  FROM visits " \
               "  INNER JOIN visits previous_visit" \
               "    ON visits.observation_period_id = previous_visit.observation_period_id " \
               "      AND visits.visit_rank = previous_visit.visit_rank + 1" \
+              " INNER JOIN person on visits.person_id = person.person_id" \
               ") intervals"
         con.execute(sql)
         sql = "CREATE TABLE start_tokens AS " \
@@ -135,7 +138,8 @@ class CdmDataProcessor(AbstractCdmDataProcessor):
               "  CAST(visit_concept_id AS VARCHAR) AS visit_concept_ids, " \
               "  -1 AS sort_order, " \
               "  observation_period_id, " \
-              "  person.person_id " \
+              "  person.person_id, " \
+              "  person.gender_concept_id " \
               "FROM visits " \
               "INNER JOIN person " \
               "  ON visits.person_id = person.person_id"
@@ -149,7 +153,8 @@ class CdmDataProcessor(AbstractCdmDataProcessor):
               "  CAST(visit_concept_id AS VARCHAR) AS visit_concept_ids, " \
               "  concept_id AS sort_order, " \
               "  observation_period_id, " \
-              "  person.person_id " \
+              "  person.person_id, " \
+              "  person.gender_concept_id " \
               "FROM event_table " \
               "INNER JOIN visits " \
               "  ON event_table.internal_visit_id = visits.internal_visit_id " \
@@ -165,7 +170,8 @@ class CdmDataProcessor(AbstractCdmDataProcessor):
               "  CAST(visit_concept_id AS VARCHAR) AS visit_concept_ids, " \
               "  9223372036854775807 AS sort_order, " \
               "  observation_period_id, " \
-              "  person.person_id " \
+              "  person.person_id, " \
+              "  person.gender_concept_id " \
               "FROM visits " \
               "INNER JOIN person " \
               "  ON visits.person_id = person.person_id"
@@ -204,6 +210,7 @@ class CdmDataProcessor(AbstractCdmDataProcessor):
         con.execute("DROP TABLE end_tokens")
         duckdb.close(con)
         aggregate_list = [("person_id", "max"),
+                          ("gender_concept_id", "max"),
                           ("concept_ids", "list"),
                           ("visit_segments", "list"),
                           ("dates", "list"),
@@ -215,6 +222,7 @@ class CdmDataProcessor(AbstractCdmDataProcessor):
                           ("visit_concept_orders", "max")]
         name_list = ["observation_period_id",
                      "person_id",
+                     "gender_id",
                      "concept_ids",
                      "visit_segments",
                      "dates",
