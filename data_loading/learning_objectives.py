@@ -508,7 +508,7 @@ class NewLabelPredictionLearningObjective:
         self._predictions.add(person_ids=outputs[ModelInputNames.PERSON_ID].detach().cpu().tolist(),
                               observation_period_ids=outputs[ModelInputNames.OBSERVATION_PERIOD_ID].detach().cpu().
                               tolist(),
-                              predictions=predictions[ModelOutputNames.LABEL_PREDICTIONS].detach().cpu().squeeze(1).
+                              predictions=torch.sigmoid(predictions[ModelOutputNames.LABEL_PREDICTIONS].detach().cpu().squeeze()).
                               tolist())
         return torch.tensor(0.0)
 
