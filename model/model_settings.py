@@ -28,10 +28,11 @@ class ModelSettings:
 
 @dataclass
 class SimpleModelSettings:
-    max_sequence_length: int
-    concept_embedding: bool
-    visit_order_embedding: bool
-    segment_embedding: bool
-    age_embedding: bool
-    date_embedding: bool
-    visit_concept_embedding: bool
+    max_sequence_length: int = 256
+    concept_embedding: bool = True
+    visit_order_embedding: bool = False
+    segment_embedding: bool = False
+    age_embedding: bool = False
+    date_embedding: bool = False
+    visit_concept_embedding: bool = False
+    embedding_size: int = None

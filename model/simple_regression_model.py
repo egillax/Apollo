@@ -10,18 +10,19 @@ from torch import nn, Tensor
 
 from data_loading.tokenizer import ConceptTokenizer
 from data_loading.variable_names import ModelInputNames, ModelOutputNames
-from model.model_settings import ModelSettings
+from model.model_settings import SimpleModelSettings
 from training.train_settings import LearningObjectiveSettings
 
 
 class SimpleRegressionModel(torch.nn.Module):
     def __init__(self,
-                 model_settings: ModelSettings,
+                 model_settings: SimpleModelSettings,
                  learning_objective_settings: LearningObjectiveSettings,
                  tokenizer: ConceptTokenizer,
                  visit_tokenizer: ConceptTokenizer):
         super().__init__()
         self.model_settings = model_settings
+        self.embedding_size = model_settings.embedding_size
         self.learning_objective_settings = learning_objective_settings
         self._frozen = False
         self._vocab_size = tokenizer.get_vocab_size()
@@ -31,7 +32,14 @@ class SimpleRegressionModel(torch.nn.Module):
             raise NotImplementedError("Masked concept learning and masked visit learning are not implemented for the "
                                       "simple regression model.")
         if learning_objective_settings.label_prediction:
-            self.label_decoder = nn.Linear(in_features=tokenizer.get_vocab_size(),
+            if model_settings.age_embedding:
+                add = 1
+            else:
+                add = 0
+            self.embedding = nn.EmbeddingBag(num_embeddings=self._vocab_size,
+                                             embedding_dim=self.embedding_size,
+                                             mode="mean")
+            self.label_decoder = nn.Linear(in_features=self.embedding_size + add,
                                            out_features=1)
             self.label_decoder.bias.data.zero_()
             nn.init.xavier_uniform_(self.label_decoder.weight)
@@ -50,7 +58,14 @@ class SimpleRegressionModel(torch.nn.Module):
 
         predictions = {}
         if self.learning_objective_settings.label_prediction:
-            predictions[ModelOutputNames.LABEL_PREDICTIONS] = torch.sigmoid(self.label_decoder(input_vector))
+            if self.model_settings.age_embedding:
+                age = inputs["ages"].max(dim=1).values/12/100  # normalize to 100 years
+                embeddings = self.embedding(token_ids)
+                embeddings = torch.cat([embeddings, age.unsqueeze(-1)], dim=-1)
+                predictions[ModelOutputNames.LABEL_PREDICTIONS] = self.label_decoder(embeddings).squeeze()
+            else:
+                embeddings = self.embedding(token_ids)
+                predictions[ModelOutputNames.LABEL_PREDICTIONS] = torch.sigmoid(self.label_decoder(embeddings)).squeeze()
         return predictions
 
     def freeze_non_head(self):
