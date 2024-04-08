@@ -169,7 +169,7 @@ def link_events_to_visits(event_table: pa.Table,
         existing visits, and (3) a dataframe with the number of visits mapped by ID, data, or to new visits.
     """
     # Filter out visits that are not in the event table
-    visit_occurrence = visit_occurrence.filter(pc.is_in(pc.field(VISIT_OCCURRENCE_ID), event_table[VISIT_OCCURRENCE_ID]))
+    # visit_occurrence = visit_occurrence.filter(pc.is_in(pc.field(VISIT_OCCURRENCE_ID), event_table[VISIT_OCCURRENCE_ID]))
 
     # DuckDb seems to be the fastest way (by far) to do these join, especially the one on dates
     visit_occurrence = visit_occurrence.append_column("internal_visit_id",
