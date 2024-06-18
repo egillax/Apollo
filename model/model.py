@@ -107,8 +107,12 @@ class TransformerModel(nn.Module):
                                               num_layers=1,
                                               batch_first=True,
                                               bidirectional=True)
-            self.lstm_label_decoder_linear = nn.Linear(in_features=128 * 2,
-                                                       out_features=1)
+            self.lstm_label_decoder_linear = nn.Linear(in_features=257,
+                                                       out_features=64)
+            self.head = nn.Linear(in_features=64,
+                                  out_features=1)
+            self.age_norm = nn.BatchNorm1d(1)
+            self.head_dropout = nn.Dropout(model_settings.hidden_dropout_prob)
             self.lstm_label_decoder_linear.bias.data.zero_()
             nn.init.xavier_uniform_(self.lstm_label_decoder_linear.weight)
 
@@ -190,7 +194,10 @@ class TransformerModel(nn.Module):
         lstm_output, _ = pad_packed_sequence(packed_output, batch_first=True)
         last_non_padded_idx = seq_lengths.view(-1, 1).expand(len(seq_lengths), lstm_output.size(2)).unsqueeze(1) - 1
         lstm_output = lstm_output.gather(1, last_non_padded_idx).squeeze(1)
-        return torch.sigmoid(self.lstm_label_decoder_linear(lstm_output))
+        max_age = inputs["ages"].max(dim=1, keepdim=True).values
+        norm_age = self.age_norm(max_age)
+        lstm_output = self.head_dropout(self.lstm_label_decoder_linear(torch.cat([lstm_output, norm_age], dim=1)))
+        return self.head(lstm_output)
 
     def freeze_non_head(self):
         """Freeze all parameters except the head layers."""
