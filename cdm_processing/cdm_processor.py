@@ -236,7 +236,10 @@ class CdmDataProcessor(AbstractCdmDataProcessor):
             columns_to_add = part1.strip(" ,").split(", ")
             aggregate_list.extend([(column.strip(), "any") for column in columns_to_add])
             name_list.extend([column.strip() for column in columns_to_add])
-        sequence_data = union_tokens.group_by("observation_period_id"). \
+        # aggregate order is not guaranteed unless use_threads=false
+        # https://github.com/apache/arrow/issues/36709
+        sequence_data = union_tokens.group_by("observation_period_id",
+                                              use_threads=False). \
             aggregate(aggregate_list). \
             rename_columns(name_list)
         return sequence_data
